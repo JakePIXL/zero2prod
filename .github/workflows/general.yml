@@ -2,7 +2,7 @@ name: Rust
 
 on: [push, pull_request]
   paths-ignore:
-    - '**/**.md'
+    - '*.md'
 
 env:
   CARGO_TERM_COLOR: always
