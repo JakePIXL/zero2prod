@@ -1,6 +1,8 @@
 name: Quality & Coverage
 
 on: [push, pull_request]
+  paths-ignore:
+    - '**/**.md'
 
 env:
   CARGO_TERM_COLOR: always
