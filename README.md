@@ -8,7 +8,7 @@ This repository contains the code and notes from my learning journey through the
 I hope that by sharing my code and notes, it may be helpful to others who are also learning Rust and backend development.
 
 
-This book is easily ⭐️⭐️⭐️⭐️'s by the way, Luca and contributers if you see this, thank you for your work!
+This book is easily ⭐️⭐️⭐️⭐️⭐️'s by the way, Luca and contributers if you see this, thank you for your work!
 
 
 ## What I do differently
