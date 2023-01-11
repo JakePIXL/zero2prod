@@ -21,10 +21,16 @@ static TRACING: Lazy<()> = Lazy::new(|| {
     };
 });
 
+pub struct ConfirmationLinks {
+    pub html: reqwest::Url,
+    pub plain_text: reqwest::Url,
+}
+
 pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
     pub email_server: MockServer,
+    pub port: u16,
 }
 
 impl TestApp {
@@ -36,6 +42,32 @@ impl TestApp {
             .send()
             .await
             .expect("Failed to execute request.")
+    }
+
+    pub fn get_confirmation_links(&self, email_request: &wiremock::Request) -> ConfirmationLinks {
+        let body: serde_json::Value = serde_json::from_slice(&email_request.body).unwrap();
+
+        let get_link = |s: &str| {
+            let links: Vec<_> = linkify::LinkFinder::new()
+                .links(s)
+                .filter(|l| *l.kind() == linkify::LinkKind::Url)
+                .collect();
+            assert_eq!(links.len(), 1);
+
+            let raw_link = links[0].as_str().to_owned();
+            let mut confirmation_link = reqwest::Url::parse(&raw_link).unwrap();
+
+            assert_eq!(confirmation_link.host_str().unwrap(), "127.0.0.1");
+
+            confirmation_link.set_port(Some(self.port)).unwrap();
+            confirmation_link
+        };
+
+        let html = get_link(&body["HtmlBody"].as_str().unwrap());
+
+        let plain_text = get_link(&body["TextBody"].as_str().unwrap());
+
+        ConfirmationLinks { html, plain_text }
     }
 }
 
@@ -64,45 +96,17 @@ pub async fn spawn_app() -> TestApp {
         .await
         .expect("Failed to build application.");
 
-    let address = format!("http://127.0.0.1:{}", application.port());
+    let application_port = application.port();
+
+    // let address = format!("http://127.0.0.1:{}", application_port);
     let _ = tokio::spawn(application.run_until_stopped());
 
     TestApp {
-        address,
+        address: format!("http://127.0.0.1:{}", application_port),
         db_pool: get_connection_pool(&configuration.database),
         email_server,
+        port: application_port,
     }
-
-    // let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
-    // // We retrieve the port assigned to us by the OS
-    // let port = listener.local_addr().unwrap().port();
-    // let address = format!("http://127.0.0.1:{}", port);
-
-    // let mut configuration = get_configuration().expect("Failed to read configuration.");
-    // configuration.database.database_name = Uuid::new_v4().to_string();
-    // let connection_pool = configure_database(&configuration.database).await;
-
-    // let sender_email = configuration
-    //     .email_client
-    //     .sender()
-    //     .expect("Invalid sender email address.");
-
-    // let timeout = configuration.email_client.timeout();
-
-    // let email_client = EmailClient::new(
-    //     configuration.email_client.base_url,
-    //     sender_email,
-    //     configuration.email_client.authorization_token,
-    //     timeout,
-    // );
-
-    // let server =
-    //     run(listener, connection_pool.clone(), email_client).expect("Failed to bind address");
-    // let _ = tokio::spawn(server);
-    // TestApp {
-    //     address,
-    //     db_pool: connection_pool,
-    // }
 }
 
 async fn configure_database(config: &DatabaseSettings) -> PgPool {
