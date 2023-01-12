@@ -41,9 +41,51 @@ pub async fn subscribe(
     email_client: web::Data<EmailClient>,
     base_url: web::Data<ApplicationBaseUrl>,
 ) -> HttpResponse {
-    let new_subscriber = match form.0.try_into() {
+    let new_subscriber: NewSubscriber = match form.0.try_into() {
         Ok(subscriber) => subscriber,
         Err(e) => return HttpResponse::BadRequest().body(e),
+    };
+
+    // Not part of Zero2Prod, just extra learning step, probably not efficient.
+    match sqlx::query!(
+        "SELECT id, status FROM subscriptions WHERE email = $1",
+        new_subscriber.email.as_ref()
+    )
+    .fetch_optional(pool.as_ref())
+    .await
+    {
+        Ok(item) => {
+            if item.is_some() {
+                let new_item = item.unwrap();
+
+                let sub_id = new_item.id;
+                let status = new_item.status;
+
+                if status == "confirmed" {
+                    return HttpResponse::Conflict().body("Account is already confirmed!");
+                } else {
+                    match grab_user_subscription_token(sub_id, &pool).await {
+                        Ok(token) => {
+                            match send_confirmation_email(
+                                &email_client,
+                                new_subscriber.clone(),
+                                &base_url.0,
+                                &token,
+                            )
+                            .await
+                            {
+                                Ok(_) => {
+                                    return HttpResponse::Ok().body("Confirmation email sent!")
+                                }
+                                Err(_) => return HttpResponse::InternalServerError().finish(),
+                            }
+                        }
+                        Err(_) => return HttpResponse::InternalServerError().finish(),
+                    };
+                }
+            }
+        }
+        Err(_) => return HttpResponse::InternalServerError().finish(),
     };
 
     let mut transaction = match pool.begin().await {
@@ -170,4 +212,21 @@ fn generate_subscription_token() -> String {
         .map(char::from)
         .take(25)
         .collect()
+}
+
+#[tracing::instrument(name = "Grab subscription token from database", skip(pool))]
+async fn grab_user_subscription_token(
+    subscriber_id: Uuid,
+    pool: &PgPool,
+) -> Result<String, sqlx::Error> {
+    match sqlx::query!(
+        "SELECT subscription_token FROM subscription_tokens WHERE subscriber_id = $1",
+        subscriber_id
+    )
+    .fetch_one(pool)
+    .await
+    {
+        Ok(record) => Ok(record.subscription_token),
+        Err(e) => Err(e),
+    }
 }

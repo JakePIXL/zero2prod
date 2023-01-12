@@ -27,16 +27,34 @@ pub async fn confirm(parameters: web::Query<Parameters>, pool: web::Data<PgPool>
 
 #[tracing::instrument(name = "Mark subscriber as confirmed", skip(subscriber_id, pool))]
 pub async fn confirm_subscriber(pool: &PgPool, subscriber_id: Uuid) -> Result<(), sqlx::Error> {
+    let mut transaction = match pool.begin().await {
+        Ok(transaction) => transaction,
+        Err(e) => return Err(e),
+    };
+
     sqlx::query!(
         r#"UPDATE subscriptions SET status = 'confirmed' WHERE id = $1"#,
         subscriber_id
     )
-    .execute(pool)
+    .execute(&mut transaction)
     .await
     .map_err(|e| {
         tracing::error!("Failed to execute query: {:?}", e);
         e
     })?;
+
+    sqlx::query!(
+        "DELETE FROM subscription_tokens WHERE subscriber_id = $1",
+        subscriber_id
+    )
+    .execute(&mut transaction)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to execute query: {:?}", e);
+        e
+    })?;
+
+    transaction.commit().await?;
 
     Ok(())
 }

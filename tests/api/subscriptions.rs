@@ -126,3 +126,36 @@ async fn subscribe_sends_a_confirmation_email_with_a_link() {
 
     assert_eq!(confirmation_links.html, confirmation_links.plain_text);
 }
+
+#[tokio::test]
+async fn subscribing_returns_a_409_if_susbcriber_is_already_confirmed() {
+    let app = spawn_app().await;
+
+    sqlx::query!(
+        r#"
+    INSERT INTO subscriptions (id, email, name, subscribed_at, status)
+    VALUES ($1, $2, $3, $4, 'confirmed')
+            "#,
+        uuid::Uuid::new_v4(),
+        "jake@valink.io",
+        "jake evans",
+        chrono::Utc::now()
+    )
+    .execute(&app.db_pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to execute query: {:?}", e);
+        e
+    })
+    .unwrap();
+
+    let body = "name=jake%20evans&email=jake%40valink.io";
+
+    Mock::given(path("/email"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(409))
+        .mount(&app.email_server)
+        .await;
+
+    app.post_subscriptions(body.into()).await;
+}
