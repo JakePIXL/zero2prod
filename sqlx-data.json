@@ -1,5 +1,63 @@
 {
   "db": "PostgreSQL",
+  "155351dbd140ebb2b399fe6b719b8af9e6e80c5a2f1d5fca8f14134db1b8a03d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "status",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT id, status FROM subscriptions WHERE email = $1"
+  },
+  "2aa3124b00dbb4e06c369c6e63730714dde99aa3bbdb07fb7bcf40e0fb90edfd": {
+    "describe": {
+      "columns": [
+        {
+          "name": "subscription_token",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT subscription_token FROM subscription_tokens WHERE subscriber_id = $1"
+  },
+  "2eb5b57eebcbb31598d4937840ad8196b058650353d92d892e24df49625c1340": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "DELETE FROM subscription_tokens WHERE subscriber_id = $1"
+  },
   "51c9c995452d3359e3da7e2f2ff8a6e68690f740a36d2a32ec7c40b08931ebdb": {
     "describe": {
       "columns": [],
