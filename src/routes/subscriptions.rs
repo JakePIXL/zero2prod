@@ -55,9 +55,7 @@ pub async fn subscribe(
     .await
     {
         Ok(item) => {
-            if item.is_some() {
-                let new_item = item.unwrap();
-
+            if let Some(new_item) = item {
                 let sub_id = new_item.id;
                 let status = new_item.status;
 
