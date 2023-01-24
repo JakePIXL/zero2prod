@@ -3,10 +3,10 @@ name: Quality & Coverage
 on:
   push:
     paths-ignore:
-      - '**/**.md'
+      - "**/**.md"
   pull_request:
     paths-ignore:
-      - '**/**.md'
+      - "**/**.md"
 
 env:
   CARGO_TERM_COLOR: always
@@ -58,7 +58,7 @@ jobs:
         uses: actions-rs/cargo@v1
         if: steps.cache-sqlx.outputs.cache-hit == false
         with:
-          command: install 
+          command: install
           args: >
             sqlx-cli
             --force
@@ -127,11 +127,11 @@ jobs:
             ~/.cargo/bin/sqlx
           key: ${{ runner.os }}-sqlx-${{ env.SQLX_VERSION }}
 
-      - name: Install sqlx-cli 
+      - name: Install sqlx-cli
         uses: actions-rs/cargo@v1
         if: steps.cache-sqlx.outputs.cache-hit == false
         with:
-          command: install 
+          command: install
           args: >
             sqlx-cli
             --force
@@ -182,11 +182,11 @@ jobs:
             ~/.cargo/bin/sqlx
           key: ${{ runner.os }}-sqlx-${{ env.SQLX_VERSION }}
 
-      - name: Install sqlx-cli 
+      - name: Install sqlx-cli
         uses: actions-rs/cargo@v1
         if: steps.cache-sqlx.outputs.cache-hit == false
         with:
-          command: install 
+          command: install
           args: >
             sqlx-cli
             --force
@@ -201,4 +201,5 @@ jobs:
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:
-          args: '--ignore-tests --avoid-cfg-tarpaulin'
+          version: "0.23.1"
+          args: "--ignore-tests --avoid-cfg-tarpaulin"
